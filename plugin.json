@@ -1,0 +1,118 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "open-legal-data-germany",
+  "description": "Search German court decisions and laws, read full texts and check citations with open data from the Open Legal Data Platform.",
+  "author": {
+    "name": "Open Legal Data",
+    "email": "hello@openlegaldata.io",
+    "url": "https://openlegaldata.io"
+  },
+  "homepage": "https://de.openlegaldata.io/",
+  "repository": "https://github.com/openlegaldata/oldp-de-agent-plugin",
+  "license": "MIT",
+  "keywords": [
+    "legal research",
+    "case law",
+    "German law",
+    "court decisions",
+    "Urteile",
+    "Rechtsprechung",
+    "Gesetze",
+    "Aktenzeichen",
+    "ECLI",
+    "BGB"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Open Legal Data (Germany)",
+        "shortDescription": "German court decisions & laws",
+        "longDescription": "Open Legal Data connects ChatGPT to German case law and legislation from the Open Legal Data Platform (OLDP), an open collection of legal data.\n\nWhat's included:\n- Over 425,000 German court decisions (Urteile und Beschlüsse) from more than 1,100 courts, from federal courts such as the BGH and BVerfG down to regional and local courts in all 16 federal states (Bundesländer), from 1970 to today\n- More than 7,000 laws and regulations (Gesetze und Verordnungen) with about 114,000 sections (Paragraphen), such as BGB, StGB, ZPO and GG\n- A citation graph with over 18 million references between decisions and laws\n\nWhat ChatGPT can do with it:\n- Search case law and laws together in full text, or filter decisions by court and date\n- Read the full text of a decision or a law section, in parts for long documents\n- Check whether a citation exists: file number (Aktenzeichen), ECLI or a law reference such as \"§ 823 BGB\"\n- Follow citations: what a decision cites, which decisions cite it, and which decisions interpret a given section of a law\n- Find similar decisions and get statistics by court and year\n\nYou can read without an account. Signing in with an OLDP account gives you higher rate limits and lets you send feedback (bug reports, data problems, feature requests) to the OLDP team from the conversation.\n\nTypical uses: legal research (juristische Recherche), checking citations in briefs, papers and theses, and finding the case law (Rechtsprechung) on a statute.\n\nAll data is public. References are extracted automatically and may be incomplete. Not legal advice (keine Rechtsberatung).",
+        "developerName": "Open Legal Data",
+        "category": "Research",
+        "capabilities": [
+          "Search German court decisions and laws",
+          "Read full texts of decisions and law sections",
+          "Check citations (Aktenzeichen, ECLI, § references)",
+          "Follow citations between decisions and laws",
+          "Statistics of decisions by court and year"
+        ],
+        "websiteURL": "https://de.openlegaldata.io/",
+        "supportURL": "https://de.openlegaldata.io/contact/",
+        "privacyPolicyURL": "https://de.openlegaldata.io/pages/privacy/",
+        "termsOfServiceURL": "https://de.openlegaldata.io/pages/terms/",
+        "defaultPrompt": [
+          "Find recent BGH decisions on non-material damages under Art. 82 GDPR (DSGVO).",
+          "Check these citations: BGH VIII ZR 154/14 and § 573 BGB.",
+          "Which court decisions cite § 573 BGB most often?"
+        ],
+        "brandColor": "#0379C4",
+        "brandColorDark": "#4FA8E0",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Full-text search of case law: finds recent Federal Court of Justice (BGH) decisions on a GDPR topic and opens one of them.",
+              "prompt": "Search the BGH's recent rulings on non-material damages under Art. 82 GDPR (DSGVO) and summarize the newest one.",
+              "tools_triggered": "search_cases, get_case",
+              "expected_behavior": "Lists BGH decisions on Art. 82 DSGVO with court, date and file number (Aktenzeichen), e.g. I ZR 97/25 or VI ZR 396/24, then reads the newest decision with get_case and summarizes it from its text."
+            },
+            {
+              "description": "Citation check: two real citations are confirmed, a made-up file number is reported as not found.",
+              "prompt": "Check these citations: BGH VIII ZR 154/14, BGH VIII ZR 999/14, § 573 BGB",
+              "tools_triggered": "validate_citation",
+              "expected_behavior": "VIII ZR 154/14 is found as a BGH decision, VIII ZR 999/14 is reported as not found (it does not exist), and § 573 BGB is found as \"Ordentliche Kündigung des Vermieters\"."
+            },
+            {
+              "description": "From statute to case law: shows a law section and the decisions that cite it most often.",
+              "prompt": "Show the text of § 573 BGB and the court decisions that cite it most often.",
+              "tools_triggered": "get_law_section, get_cases_for_law",
+              "expected_behavior": "Returns the verbatim text of § 573 BGB (\"Ordentliche Kündigung des Vermieters\") and a list of several hundred decisions citing it, ranked by citation count, with VIII ZR 175/14 among the most cited."
+            },
+            {
+              "description": "Statistics: counts court decisions by year for one federal state.",
+              "prompt": "How many court decisions from Bavaria are there per year since 2018?",
+              "tools_triggered": "get_case_statistics",
+              "expected_behavior": "Returns one count of decisions from Bavarian courts per year from 2018 to the current year, e.g. as a table."
+            },
+            {
+              "description": "Sign-in: sending feedback requires an OLDP account, so ChatGPT asks to connect the account, then sends the message. Use the reviewer test account; this emails the OLDP team and changes no data.",
+              "prompt": "Send feedback to the OLDP team: this is a test from the OpenAI review.",
+              "tools_triggered": "submit_feedback",
+              "expected_behavior": "Signed out, ChatGPT asks to connect an OLDP account. After signing in with the test account (German login and consent pages: approve with \"Autorisieren\"), the feedback is sent and the tool returns submitted: true."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Out of scope, filing: the plugin only reads legal data and cannot draft binding documents or file them with a court. ChatGPT should say so and may offer relevant case law instead.",
+              "prompt": "File a lawsuit against my landlord at the Amtsgericht München for me."
+            },
+            {
+              "description": "Out of scope, modifying data: all data tools are read-only, nothing can be deleted. ChatGPT should decline and point out that the data cannot be changed.",
+              "prompt": "Delete the BGH decision VIII ZR 154/14 from the database."
+            },
+            {
+              "description": "Out of coverage: the plugin covers German law only. ChatGPT should not present German decisions as US case law and should explain the coverage.",
+              "prompt": "Find US Supreme Court decisions on fair use in copyright law."
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "No products, payments or paid features."
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "Initial release: search, retrieval, citation checks, citation graph and statistics for German court decisions and laws; feedback to the OLDP team for signed-in users.",
+        "translations": {
+          "de-DE": {
+            "subtitle": "Deutsche Urteile und Gesetze",
+            "description": "Open Legal Data verbindet ChatGPT mit Rechtsprechung und Gesetzen aus der Open Legal Data Platform (OLDP), einer offenen Sammlung juristischer Daten.\n\nEnthalten sind:\n- Über 425.000 Gerichtsentscheidungen (Urteile und Beschlüsse) von mehr als 1.100 Gerichten, von Bundesgerichten wie BGH und BVerfG bis zu Land- und Amtsgerichten in allen 16 Bundesländern, von 1970 bis heute\n- Mehr als 7.000 Gesetze und Verordnungen mit rund 114.000 Paragraphen, etwa BGB, StGB, ZPO und GG\n- Ein Zitationsnetz mit über 18 Millionen Verweisen zwischen Entscheidungen und Gesetzen\n\nWas ChatGPT damit kann:\n- Rechtsprechung und Gesetze gemeinsam im Volltext durchsuchen oder Entscheidungen nach Gericht und Datum filtern\n- Den Volltext einer Entscheidung oder eines Paragraphen lesen, bei langen Texten abschnittsweise\n- Prüfen, ob ein Zitat existiert: Aktenzeichen, ECLI oder Normzitat wie „§ 823 BGB“\n- Zitaten folgen: was eine Entscheidung zitiert, welche Entscheidungen sie zitieren und welche Entscheidungen einen Paragraphen auslegen\n- Ähnliche Entscheidungen finden und Statistiken nach Gericht und Jahr abrufen\n\nLesen geht ohne Konto. Mit einem OLDP-Konto gelten höhere Rate-Limits, und Sie können dem OLDP-Team direkt aus dem Chat Feedback senden (Fehler, Datenprobleme, Wünsche).\n\nTypische Anwendungen: juristische Recherche, Prüfen von Zitaten in Schriftsätzen, Aufsätzen und Abschlussarbeiten, und die Suche nach Rechtsprechung zu einer Norm.\n\nAlle Daten sind öffentlich. Verweise werden automatisch extrahiert und können unvollständig sein. Keine Rechtsberatung."
+          }
+        }
+      }
+    }
+  }
+}
