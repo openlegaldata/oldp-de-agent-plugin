@@ -61,6 +61,27 @@ The script checks:
 The ZIP contains `plugin.json` (with `version`), `mcp.json`, `assets/` and
 `skills/` if present. CI runs the same checks on every push.
 
+## Release
+
+The `Release` workflow (`.github/workflows/release.yml`) builds the ZIP with
+`--check-urls` and attaches it to a GitHub release, so the file to upload in
+the plugin portal can be downloaded from the
+[releases page](https://github.com/openlegaldata/oldp-de-agent-plugin/releases).
+Start it in one of two ways:
+
+- push a tag `v<version>`:
+
+  ```bash
+  git tag v0.16.5 && git push origin v0.16.5
+  ```
+
+- or run it from the Actions tab ("Run workflow") and enter the version,
+  e.g. `0.16.5-1`. This creates the tag `v<version>` on the selected commit.
+
+The release notes come from `extensions["com.openai"].publication.release_notes`
+in `plugin.json`. The workflow fails if the release already exists, because
+each upload needs a new version.
+
 ## Versioning
 
 The plugin version is the version of the OLDP release that serves the MCP
