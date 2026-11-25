@@ -1,0 +1,88 @@
+name: Release
+
+# Builds the plugin ZIP and attaches it to a GitHub release.
+# Trigger it either way:
+#   - push a tag:  git tag v0.16.5 && git push origin v0.16.5
+#   - run it from the Actions tab ("Run workflow") with a version; this
+#     creates the tag v<version> on the selected commit.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Plugin version without a leading v, e.g. 0.16.5 or 0.16.5-1"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve the version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            version="${INPUT_VERSION#v}"
+          else
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if the release already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Each upload to a plugin portal needs a new version."
+            exit 1
+          fi
+
+      - name: Validate and build the package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: python scripts/build_agent_plugin.py --version "$VERSION" --check-urls
+
+      - name: Write the release notes
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          python - <<'EOF' > release-notes.md
+          import json, os
+          plugin = json.load(open("plugin.json"))
+          notes = plugin.get("extensions", {}).get("com.openai", {}).get("publication", {}).get("release_notes", "")
+          zip_name = f"{plugin['name']}-{os.environ['TAG'][1:]}.zip"
+          print(notes)
+          print()
+          print(f"Upload `{zip_name}` in the [OpenAI plugin portal](https://platform.openai.com/plugins).")
+          EOF
+          cat release-notes.md
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" dist/*.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --notes-file release-notes.md
